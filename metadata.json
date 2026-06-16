@@ -1,0 +1,6 @@
+{
+  "name": "Translator",
+  "description": "A native modern translation app leveraging Gemini API to seamlessly translate text between multiple languages.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
