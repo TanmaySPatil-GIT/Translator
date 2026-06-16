@@ -1,30 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
+
+    <!-- Subtle Premium Shadow for Card 1 -->
+    <path
+        android:pathData="M 33,26 h 28 a 8,8 0 0 1 8,8 v 28 a 8,8 0 0 1 -8,8 h -28 a 8,8 0 0 1 -8,-8 v -28 a 8,8 0 0 1 8,-8 Z"
+        android:fillColor="#30001A15" />
+
+    <!-- Card 1: Source Language Card (White / Light Translucent Cyan) -->
+    <path
+        android:pathData="M 32,24 h 28 a 8,8 0 0 1 8,8 v 28 a 8,8 0 0 1 -8,8 h -28 a 8,8 0 0 1 -8,-8 v -28 a 8,8 0 0 1 8,-8 Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
+                android:type="linear"
+                android:startX="24"
+                android:startY="24"
+                android:endX="68"
+                android:endY="68">
+                <item android:offset="0.0" android:color="#E0F2F1" />
+                <item android:offset="1.0" android:color="#B2DFDB" />
             </gradient>
         </aapt:attr>
     </path>
+
+    <!-- Glyph 'A' in Card 1 -->
     <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:pathData="M 46,34 L 37,54 h 3.5 l 2,-5 h 7 l 2,5 h 3.5 L 46,34 Z M 43.5,45.5 L 46,39 L 48.5,45.5 Z"
+        android:fillColor="#004D40" />
+
+    <!-- Intersecting Translator Swap Arrow Loop (Sleek minimalist path) -->
+    <path
+        android:pathData="M 66,36 C 74,36 80,42 80,50 L 76,47 L 80,50 L 84,47"
+        android:strokeColor="#80B2DFDB"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 42,72 C 34,72 28,66 28,58 L 32,61 L 28,58 L 24,61"
+        android:strokeColor="#80B2DFDB"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+
+    <!-- Subtle Premium Shadow for Card 2 -->
+    <path
+        android:pathData="M 49,42 h 28 a 8,8 0 0 1 8,8 v 28 a 8,8 0 0 1 -8,8 h -28 a 8,8 0 0 1 -8,-8 v -28 a 8,8 0 0 1 8,-8 Z"
+        android:fillColor="#40001A15" />
+
+    <!-- Card 2: Target Language Card (Teal Gradient / High Contrast) -->
+    <path
+        android:pathData="M 48,40 h 28 a 8,8 0 0 1 8,8 v 28 a 8,8 0 0 1 -8,8 h -28 a 8,8 0 0 1 -8,-8 v -28 a 8,8 0 0 1 8,-8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="40"
+                android:endX="84"
+                android:endY="84">
+                <item android:offset="0.0" android:color="#00B2A9" />
+                <item android:offset="1.0" android:color="#006666" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Glyph '文' in Card 2 -->
+    <!-- Top dot/dash -->
+    <path
+        android:pathData="M 60.5,47 h 3 v 4 h -3 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- Horizontal Crossbar -->
+    <path
+        android:pathData="M 50.5,53 h 23 v 3 h -23 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- Left sweeping line -->
+    <path
+        android:pathData="M 64.5,57.5 C 60.5,63.5 54.5,70 47.5,73.5 L 49.5,76 C 56.5,72.5 62.5,66 66.5,59.5 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- Right sweeping line -->
+    <path
+        android:pathData="M 58.5,57 C 62.5,63 69,72 76.5,74.5 L 78.5,72 C 71.5,69.5 65.5,61.5 61.5,57 Z"
+        android:fillColor="#FFFFFF" />
+
 </vector>
