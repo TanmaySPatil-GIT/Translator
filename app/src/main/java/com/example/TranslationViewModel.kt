@@ -7,12 +7,7 @@ import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.api.Content
-import com.example.api.GenerateContentRequest
-import com.example.api.GenerationConfig
-import com.example.api.Part
-import com.example.api.RetrofitClient
-import com.example.api.InlineData
+import com.example.api.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
@@ -63,7 +58,8 @@ sealed interface TranslationUiState {
     ) : TranslationUiState
     data class Error(
         val message: String,
-        val isNoInternet: Boolean = false
+        val isNoInternet: Boolean = false,
+        val timestamp: Long = System.currentTimeMillis()
     ) : TranslationUiState
 }
 
@@ -79,7 +75,7 @@ sealed interface CameraUiState {
         val detectedLanguageName: String? = null,
         val isFromCache: Boolean = false
     ) : CameraUiState
-    data class Error(val message: String) : CameraUiState
+    data class Error(val message: String, val timestamp: Long = System.currentTimeMillis()) : CameraUiState
 }
 
 sealed interface AudioUiState {
@@ -94,7 +90,7 @@ sealed interface AudioUiState {
         val targetLang: Language,
         val detectedLanguageName: String? = null
     ) : AudioUiState
-    data class Error(val message: String) : AudioUiState
+    data class Error(val message: String, val timestamp: Long = System.currentTimeMillis()) : AudioUiState
 }
 
 class TranslationViewModel(application: Application) : AndroidViewModel(application) {
@@ -295,11 +291,31 @@ class TranslationViewModel(application: Application) : AndroidViewModel(applicat
     )
     val targetLanguage: StateFlow<Language> = _targetLanguage.asStateFlow()
 
+    private val _isRealtimeTranslationEnabled = MutableStateFlow(sharedPrefs.getBoolean("realtime_translation_enabled", false))
+    val isRealtimeTranslationEnabled: StateFlow<Boolean> = _isRealtimeTranslationEnabled.asStateFlow()
+
+    fun setRealtimeTranslationEnabled(enabled: Boolean) {
+        _isRealtimeTranslationEnabled.value = enabled
+        sharedPrefs.edit().putBoolean("realtime_translation_enabled", enabled).apply()
+    }
+
+    private var realtimeTranslationJob: kotlinx.coroutines.Job? = null
+
     fun updateInputText(text: String) {
         _inputText.value = text
         // If user clears text, reset state back to idle
         if (text.isBlank()) {
             _uiState.value = TranslationUiState.Idle
+            realtimeTranslationJob?.cancel()
+            return
+        }
+        
+        if (_isRealtimeTranslationEnabled.value) {
+            realtimeTranslationJob?.cancel()
+            realtimeTranslationJob = viewModelScope.launch {
+                kotlinx.coroutines.delay(800) // 800ms debounce
+                translate(getApplication())
+            }
         }
     }
 

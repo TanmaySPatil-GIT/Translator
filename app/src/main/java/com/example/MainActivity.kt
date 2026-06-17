@@ -32,9 +32,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
@@ -151,6 +154,19 @@ fun TranslatorAppContent(
     val cameraUiState by viewModel.cameraUiState.collectAsState()
     val conversationTranscript by viewModel.conversationTranscript.collectAsState()
     
+    var displayedState by remember { mutableStateOf(uiState) }
+    LaunchedEffect(uiState) {
+        if (uiState !is TranslationUiState.Loading) {
+            displayedState = uiState
+        }
+    }
+    
+    val isTranslating = uiState is TranslationUiState.Loading
+    val blurProgress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isTranslating) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(400)
+    )
+
     // Haptic feedback when translation is successful
     LaunchedEffect(uiState) {
         if (uiState is TranslationUiState.Success) {
@@ -496,7 +512,7 @@ fun TranslatorAppContent(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Check,
+                        imageVector = Icons.Default.Translate,
                         contentDescription = "Translate Tab",
                         tint = if (activeScreen == AppScreen.TRANSLATE) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(16.dp)
@@ -686,7 +702,7 @@ fun TranslatorAppContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("language_selector_card"),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -782,10 +798,10 @@ fun TranslatorAppContent(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ArrowForward,
+                                imageVector = Icons.Default.SwapHoriz,
                                 contentDescription = "Swap Languages",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
@@ -920,7 +936,7 @@ fun TranslatorAppContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("input_text_card"),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -949,10 +965,11 @@ fun TranslatorAppContent(
                         ) {
                             IconButton(
                                 onClick = {
+                                    speechTargetMode = null
                                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now to translate...")
+                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...")
                                     }
                                     try {
                                         speechLauncher.launch(intent)
@@ -1077,7 +1094,24 @@ fun TranslatorAppContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp)
-                            .testTag("input_text_field"),
+                            .testTag("input_text_field")
+                            .blur(radius = (blurProgress * 12f).dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
+                            .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                if (blurProgress > 0f && blurProgress < 1f) {
+                                    drawRect(
+                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                            colors = listOf(Color.Transparent, Color.Black),
+                                            startX = (blurProgress * 2f - 1f) * this.size.width,
+                                            endX = (blurProgress * 2f) * this.size.width
+                                        ),
+                                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
+                                    )
+                                } else if (blurProgress == 1f) {
+                                    drawRect(color = Color.Transparent, blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                                }
+                            },
                         placeholder = {
                             Text(
                                 text = "Begin typing or select one of the templates below...",
@@ -1164,7 +1198,7 @@ fun TranslatorAppContent(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)
                             ),
-                            border = ButtonDefaults.outlinedButtonBorder.copy() 
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1211,9 +1245,9 @@ fun TranslatorAppContent(
                 )
                 
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    shadowElevation = 2.dp
                 ) {
                     Row(modifier = Modifier.padding(2.dp)) {
                         TranslationTone.values().forEach { tone ->
@@ -1221,7 +1255,7 @@ fun TranslatorAppContent(
                             Box(
                                 modifier = Modifier
                                     .padding(2.dp)
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                                     .clickable { viewModel.setTranslationTone(tone) }
                                     .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -1241,39 +1275,58 @@ fun TranslatorAppContent(
 
             // --- Action Translate Button ---
             Button(
-                onClick = { viewModel.translate(context) },
+                onClick = { if (!isTranslating) viewModel.translate(context) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(64.dp)
                     .testTag("translate_button"),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = com.example.ui.theme.WarmMarigold,
+                    contentColor = com.example.ui.theme.NearBlack,
+                    disabledContainerColor = com.example.ui.theme.WarmMarigold.copy(alpha = 0.7f),
+                    disabledContentColor = com.example.ui.theme.NearBlack.copy(alpha = 0.7f)
                 ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = if (isTranslating) 0.dp else 2.dp),
+                enabled = !isTranslating,
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check, // Confirmation icon
-                        contentDescription = "Translate",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Translate Now",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    if (isTranslating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = com.example.ui.theme.NearBlack,
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Translating...",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = com.example.ui.theme.Baloo2FontFamily
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Translate, // Translation icon
+                            contentDescription = "Translate",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Translate",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = com.example.ui.theme.Baloo2FontFamily
+                        )
+                    }
                 }
             }
 
             // --- Output State Card Container ---
             AnimatedContent(
-                targetState = uiState,
+                targetState = displayedState,
                 transitionSpec = {
                     fadeIn(animationSpec = tween(220)) with fadeOut(animationSpec = tween(180))
                 },
@@ -1285,7 +1338,7 @@ fun TranslatorAppContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("idle_state_card"),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
                             )
@@ -1330,47 +1383,22 @@ fun TranslatorAppContent(
                     }
 
                     is TranslationUiState.Loading -> {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("loading_state_card"),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                CircularProgressIndicator(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    strokeWidth = 3.dp,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                                Text(
-                                    text = "Translating text...",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                LinearProgressIndicator(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(4.dp)
-                                        .clip(RoundedCornerShape(2.dp)),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                )
-                            }
-                        }
+                        // This state is intentionally skipped by displayedState filtering.
                     }
 
                     is TranslationUiState.Success -> {
+                        var enterProgress by remember { mutableFloatStateOf(0f) }
+                        LaunchedEffect(state) {
+                            enterProgress = 0f
+                            androidx.compose.animation.core.animate(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = androidx.compose.animation.core.tween(400)
+                            ) { value, _ ->
+                                enterProgress = value
+                            }
+                        }
+
                         if (state.isCompareMode) {
                             val copiedStates = remember { mutableStateMapOf<String, Boolean>() }
                             Column(
@@ -1398,11 +1426,11 @@ fun TranslatorAppContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("success_state_card"),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                             ),
-                            border = ButtonDefaults.outlinedButtonBorder.copy() 
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
                                 modifier = Modifier
@@ -1541,7 +1569,7 @@ fun TranslatorAppContent(
                                                 Icon(
                                                     imageVector = Icons.Default.Star,
                                                     contentDescription = if (matchedItem.isFavorite) "Starred. Tap to unstar." else "Unstarred. Tap to star.",
-                                                    tint = if (matchedItem.isFavorite) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                                    tint = if (matchedItem.isFavorite) Color(0xFF7A2E2E) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                                     modifier = Modifier.size(22.dp)
                                                 )
                                             }
@@ -1557,7 +1585,27 @@ fun TranslatorAppContent(
                                     verticalAlignment = Alignment.Top
                                 ) {
                                     Box(modifier = Modifier.weight(1f)) {
-                                        Column {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .blur(radius = ((1f - enterProgress) * 12f).dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
+                                                .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                                                .drawWithContent {
+                                                    drawContent()
+                                                    if (enterProgress > 0f && enterProgress < 1f) {
+                                                        drawRect(
+                                                            brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                                                colors = listOf(Color.Black, Color.Transparent),
+                                                                startX = (enterProgress * 2f - 1f) * this.size.width,
+                                                                endX = (enterProgress * 2f) * this.size.width
+                                                            ),
+                                                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
+                                                        )
+                                                    } else if (enterProgress == 0f) {
+                                                        drawRect(color = Color.Transparent, blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                                                    }
+                                                }
+                                        ) {
                                             SelectionContainer {
                                                 Text(
                                                     text = state.translatedText,
@@ -1636,9 +1684,54 @@ fun TranslatorAppContent(
                                                 .testTag("tts_button_translated")
                                         ) {
                                             Icon(
-                                                imageVector = if (speakingStateText == state.translatedText) Icons.Default.Close else Icons.Default.PlayArrow,
+                                                imageVector = if (speakingStateText == state.translatedText) androidx.compose.material.icons.Icons.Default.Close else androidx.compose.material.icons.Icons.Default.VolumeUp,
                                                 contentDescription = if (speakingStateText == state.translatedText) "Stop reading aloud" else "Read aloud in " + state.targetLang.displayName,
                                                 tint = if (speakingStateText == state.translatedText) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+
+                                        // Share Button
+                                        IconButton(
+                                            onClick = {
+                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                                val shareIntent = Intent().apply {
+                                                    action = Intent.ACTION_SEND
+                                                    putExtra(Intent.EXTRA_TEXT, state.translatedText)
+                                                    type = "text/plain"
+                                                }
+                                                context.startActivity(Intent.createChooser(shareIntent, "Share translation via"))
+                                            },
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .testTag("share_icon_button")
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Share,
+                                                contentDescription = "Share translation",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+
+                                        // Copy Button
+                                        IconButton(
+                                            onClick = {
+                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                val clip = ClipData.newPlainText("Gemini Translation", state.translatedText)
+                                                clipboard.setPrimaryClip(clip)
+                                                isCopiedSuccessfully = true
+                                                Toast.makeText(context, "Translation copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .testTag("copy_icon_button")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isCopiedSuccessfully) Icons.Default.Done else Icons.Default.ContentCopy,
+                                                contentDescription = "Copy to clipboard",
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -1670,7 +1763,7 @@ fun TranslatorAppContent(
                                         modifier = Modifier.testTag("copy_button")
                                     ) {
                                         Icon(
-                                            imageVector = if (isCopiedSuccessfully) Icons.Default.Done else Icons.Default.Check,
+                                            imageVector = if (isCopiedSuccessfully) Icons.Default.Done else Icons.Default.ContentCopy,
                                             contentDescription = "Copy to clipboard",
                                             modifier = Modifier.size(16.dp)
                                         )
@@ -1725,11 +1818,11 @@ fun TranslatorAppContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("error_state_card"),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
                             ),
-                            border = ButtonDefaults.outlinedButtonBorder.copy()
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
                                 modifier = Modifier
@@ -1774,7 +1867,7 @@ fun TranslatorAppContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("history_empty_card"),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
@@ -1860,7 +1953,7 @@ fun TranslatorAppContent(
                                 activeScreen = AppScreen.TRANSLATE
                             }
                             .testTag("history_item_${historyItem.id}"),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
@@ -1920,7 +2013,7 @@ fun TranslatorAppContent(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = if (historyItem.isFavorite) "Remove from favorites" else "Add to favorites",
-                                            tint = if (historyItem.isFavorite) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            tint = if (historyItem.isFavorite) Color(0xFF7A2E2E) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -1998,7 +2091,7 @@ fun TranslatorAppContent(
                                     modifier = Modifier.height(28.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = Icons.Default.ContentCopy,
                                         contentDescription = "Copy text",
                                         modifier = Modifier.size(14.dp)
                                     )
@@ -2017,7 +2110,7 @@ fun TranslatorAppContent(
                                     modifier = Modifier.height(28.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (speakingStateText == historyItem.translatedText) Icons.Default.Close else Icons.Default.PlayArrow,
+                                        imageVector = if (speakingStateText == historyItem.translatedText) Icons.Default.Close else androidx.compose.material.icons.Icons.Default.VolumeUp,
                                         contentDescription = "Speak translation",
                                         modifier = Modifier.size(14.dp),
                                         tint = if (speakingStateText == historyItem.translatedText) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -2064,7 +2157,7 @@ fun TranslatorAppContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("favorites_empty_card"),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
@@ -2080,13 +2173,13 @@ fun TranslatorAppContent(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFFC107).copy(alpha = 0.1f)),
+                                .background(Color(0xFF7A2E2E).copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = "Empty Favorites list",
-                                tint = Color(0xFFFFC107),
+                                tint = Color(0xFF7A2E2E),
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -2133,7 +2226,7 @@ fun TranslatorAppContent(
                                 activeScreen = AppScreen.TRANSLATE
                             }
                             .testTag("favorite_item_${favoriteItem.id}"),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
@@ -2247,7 +2340,7 @@ fun TranslatorAppContent(
                                     modifier = Modifier.height(28.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = Icons.Default.ContentCopy,
                                         contentDescription = "Copy text",
                                         modifier = Modifier.size(14.dp)
                                     )
@@ -2266,7 +2359,7 @@ fun TranslatorAppContent(
                                     modifier = Modifier.height(28.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (speakingStateText == favoriteItem.translatedText) Icons.Default.Close else Icons.Default.PlayArrow,
+                                        imageVector = if (speakingStateText == favoriteItem.translatedText) Icons.Default.Close else androidx.compose.material.icons.Icons.Default.VolumeUp,
                                         contentDescription = "Speak translation",
                                         modifier = Modifier.size(14.dp),
                                         tint = if (speakingStateText == favoriteItem.translatedText) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -2647,7 +2740,7 @@ fun AudioResultScreen(
             .fillMaxWidth()
             .testTag("audio_result_container")
             .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -2856,8 +2949,28 @@ fun AudioResultScreen(
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Share,
+                                    imageVector = Icons.Default.ContentCopy,
                                     contentDescription = "Copy text",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                    val shareIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.translatedText)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share translation via"))
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Share text",
                                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -2887,7 +3000,7 @@ fun CameraResultScreen(
             .fillMaxWidth()
             .testTag("camera_result_container")
             .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -3063,8 +3176,28 @@ fun CameraResultScreen(
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Check,
+                                    imageVector = Icons.Default.ContentCopy,
                                     contentDescription = "Copy translation",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                    val shareIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.translatedText)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share translation via"))
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Share translation",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -3242,7 +3375,7 @@ fun ConversationLayout(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("conversation_config_card"),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )
@@ -3307,7 +3440,7 @@ fun ConversationLayout(
                     .fillMaxWidth()
                     .height(115.dp)
                     .testTag("mic_auto"),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -3417,7 +3550,7 @@ fun ConversationLayout(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("conversation_empty_card"),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
             )
@@ -3509,7 +3642,7 @@ fun ConversationLayout(
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.PlayArrow,
+                                        imageVector = androidx.compose.material.icons.Icons.Default.VolumeUp,
                                         contentDescription = "Speak translation aloud",
                                         tint = if (isLeft) {
                                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -3572,15 +3705,27 @@ fun CompareResultCard(
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val isCopied = copiedStates[result.targetLang.code] ?: false
 
+    var enterProgress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(result) {
+        enterProgress = 0f
+        androidx.compose.animation.core.animate(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = androidx.compose.animation.core.tween(400)
+        ) { value, _ ->
+            enterProgress = value
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("compare_result_card_${result.targetLang.code}"),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         ),
-        border = ButtonDefaults.outlinedButtonBorder.copy()
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -3686,7 +3831,7 @@ fun CompareResultCard(
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = if (matchedItem.isFavorite) "Starred. Tap to unstar." else "Unstarred. Tap to star.",
-                                tint = if (matchedItem.isFavorite) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                tint = if (matchedItem.isFavorite) Color(0xFF7A2E2E) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -3702,7 +3847,27 @@ fun CompareResultCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    Column {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .blur(radius = ((1f - enterProgress) * 12f).dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
+                            .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                if (enterProgress > 0f && enterProgress < 1f) {
+                                    drawRect(
+                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                            colors = listOf(Color.Black, Color.Transparent),
+                                            startX = (enterProgress * 2f - 1f) * this.size.width,
+                                            endX = (enterProgress * 2f) * this.size.width
+                                        ),
+                                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
+                                    )
+                                } else if (enterProgress == 0f) {
+                                    drawRect(color = Color.Transparent, blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                                }
+                            }
+                    ) {
                         SelectionContainer {
                             Text(
                                 text = result.translatedText,
@@ -3781,7 +3946,7 @@ fun CompareResultCard(
                             .testTag("compare_tts_button_${result.targetLang.code}")
                     ) {
                         Icon(
-                            imageVector = if (speakingStateText == result.translatedText) Icons.Default.Close else Icons.Default.PlayArrow,
+                            imageVector = if (speakingStateText == result.translatedText) Icons.Default.Close else androidx.compose.material.icons.Icons.Default.VolumeUp,
                             contentDescription = if (speakingStateText == result.translatedText) "Stop reading aloud" else "Read aloud in " + result.targetLang.displayName,
                             tint = if (speakingStateText == result.translatedText) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
@@ -3815,7 +3980,7 @@ fun CompareResultCard(
                     modifier = Modifier.testTag("compare_copy_${result.targetLang.code}")
                 ) {
                     Icon(
-                        imageVector = if (isCopied) Icons.Default.Done else Icons.Default.Check,
+                        imageVector = if (isCopied) Icons.Default.Done else Icons.Default.ContentCopy,
                         contentDescription = "Copy to clipboard",
                         modifier = Modifier.size(16.dp)
                     )
@@ -3871,6 +4036,7 @@ fun SettingsDialog(
     onDismiss: () -> Unit
 ) {
     val isTransliterationEnabled by viewModel.isTransliterationEnabled.collectAsState()
+    val isRealtimeTranslationEnabled by viewModel.isRealtimeTranslationEnabled.collectAsState()
     val isCompareMode by viewModel.isCompareMode.collectAsState()
     val preferredVoiceGender by viewModel.preferredVoiceGender.collectAsState()
     val voicePitch by viewModel.voicePitch.collectAsState()
@@ -4124,6 +4290,37 @@ fun SettingsDialog(
                         selectedLanguage = defaultTargetLanguage,
                         onLanguageSelected = { viewModel.setDefaultTargetLanguage(it) },
                         includeAutoDetect = false
+                    )
+                }
+
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // Real-time Translation Toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.setRealtimeTranslationEnabled(!isRealtimeTranslationEnabled) }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Real-time Translation",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Automatically translate as you type",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    Switch(
+                        checked = isRealtimeTranslationEnabled,
+                        onCheckedChange = { viewModel.setRealtimeTranslationEnabled(it) },
+                        modifier = Modifier.testTag("settings_realtime_switch")
                     )
                 }
 

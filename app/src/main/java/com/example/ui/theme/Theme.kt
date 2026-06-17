@@ -17,26 +17,31 @@ enum class ThemeMode {
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = TealPrimaryDark,
-    secondary = TealSecondaryDark,
-    tertiary = TealTertiaryDark,
-    background = TealBackgroundDark,
-    surface = TealSurfaceDark,
-    onPrimary = TealOnPrimaryDark,
-    onSurface = TealOnSurfaceDark,
-    surfaceVariant = TealSurfaceVariantDark
+    primary = WarmMarigold,
+    secondary = DeepIndigo,
+    tertiary = WarmMarigold,
+    background = Color(0xFF121212),
+    surface = DeepIndigo,
+    surfaceVariant = Color(0xFF23355C),
+    onPrimary = Color.Black,
+    onSurface = Color.White,
+    onSurfaceVariant = Color.White,
+    error = MutedOxblood
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = TealPrimaryLight,
-    secondary = TealSecondaryLight,
-    tertiary = TealTertiaryLight,
-    background = TealBackgroundLight,
-    surface = TealSurfaceLight,
-    onPrimary = TealOnPrimaryLight,
-    onSurface = TealOnSurfaceLight,
-    surfaceVariant = TealSurfaceVariantLight
+    primary = DeepIndigo,
+    secondary = WarmMarigold,
+    tertiary = DeepIndigo,
+    background = WarmOffWhite,
+    surface = WarmOffWhite,
+    surfaceVariant = Color.White,
+    onPrimary = Color.White,
+    onBackground = NearBlack,
+    onSurface = NearBlack,
+    onSurfaceVariant = NearBlack,
+    error = MutedOxblood
   )
 
 private val HighContrastColorScheme =
